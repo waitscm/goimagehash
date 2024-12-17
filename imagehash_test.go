@@ -280,3 +280,68 @@ func TestDumpAndLoad(t *testing.T) {
 		t.Errorf("Should got error for empty bytes buffer")
 	}
 }
+
+func TestImageHash(t *testing.T) {
+	// Test cases
+	testCases := []struct {
+		name string
+		kind Kind
+		hash uint64
+	}{
+		{"Zero Hash", AHash, 0},
+		{"Small Hash", AHash, 255},
+		{"Large Hash", AHash, 1234567890123456789},
+		{"Max Hash", PHash, 0xFFFFFFFFFFFFFFFF},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Step 1: Create ImageHash
+			h := &ImageHash{
+				kind: tc.kind,
+				hash: tc.hash,
+			}
+
+			// Step 2: Convert to byte array
+			kind, byteArr := h.ByteArr()
+			if kind != tc.kind {
+				t.Errorf("Expected kind %v, got %v", tc.kind, kind)
+			}
+
+			if len(byteArr) != 8 {
+				t.Fatalf("Expected byte array length of 8, got %d", len(byteArr))
+			}
+
+			// Step 3: Create a new ImageHash and set values using FromByteArr
+			newHash := &ImageHash{}
+			err := newHash.FromByteArr(tc.kind, byteArr)
+			if err != nil {
+				t.Fatalf("FromByteArr returned error: %v", err)
+			}
+
+			// Step 4: Verify kind and hash
+			if newHash.kind != tc.kind {
+				t.Errorf("FromByteArr kind mismatch: expected %v, got %v", tc.kind, newHash.kind)
+			}
+			if newHash.hash != tc.hash {
+				t.Errorf("FromByteArr hash mismatch: expected %v, got %v", tc.hash, newHash.hash)
+			}
+
+			// Step 5: Compare byte arrays
+			_, newByteArr := newHash.ByteArr()
+			if !bytes.Equal(byteArr, newByteArr) {
+				t.Errorf("Byte arrays do not match: original %v, new %v", byteArr, newByteArr)
+			}
+		})
+	}
+}
+
+func TestFromByteArrError(t *testing.T) {
+	h := &ImageHash{}
+
+	// Invalid byte array size
+	err := h.FromByteArr(AHash, []byte{0x00, 0x01})
+	if err == nil {
+		t.Error("Expected error for incorrect byte array size, but got none")
+	}
+}

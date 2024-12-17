@@ -100,6 +100,23 @@ func (h *ImageHash) Dump(w io.Writer) error {
 	return nil
 }
 
+func (h *ImageHash) ByteArr() (Kind, []byte) {
+	b := make([]byte, 0, 8)
+
+	return h.kind, binary.BigEndian.AppendUint64(b, h.hash)
+}
+
+func (h *ImageHash) FromByteArr(k Kind, b []byte) error {
+
+	if len(b) != 8 {
+		return errors.New("incorrect byte array size")
+	}
+
+	h.kind = k
+	h.hash = binary.BigEndian.Uint64(b)
+	return nil
+}
+
 // LoadImageHash method loads a ImageHash from io.Reader.
 func LoadImageHash(b io.Reader) (*ImageHash, error) {
 	type E struct {
